@@ -16,38 +16,65 @@ function exclude_node_title_install() {
         VALUES (:rid, 'use exclude node title', 'exclude_node_title')",
             array(':rid' => $role->rid));
   }
+  $exclude_node_title_content_type_value = [];
+  $exclude_node_title_content_type_modes = [];
+  $entity_info = entity_get_info('node');
+  $view_modes = $entity_info['view modes'];
+  $modes = array();
+  foreach ($view_modes as $view_mode_name => $view_mode_info) {
+    $modes[$view_mode_name] = 0;
+  }
+  $modes += array('nodeform' => 0);
+
+  foreach (node_type_get_names() as $node_type => $node_type_label) {
+    $exclude_node_title_content_type_value[$node_type] = 'none';
+    $exclude_node_title_content_type_modes[$node_type] = $modes;
+  }
+
+  $config->set('exclude_node_title_content_type_value', $exclude_node_title_content_type_value);
+  $config->set('exclude_node_title_content_type_modes', $exclude_node_title_content_type_modes);
+  $config->save();
 }
 
 /**
- * Implements hook_uninstall().
+ * Implements hook_update_last_removed().
  */
-function exclude_node_title_uninstall() {
-  variable_del('exclude_node_title_nid_list');
-  variable_del('exclude_node_title_search');
-  variable_del('exclude_node_title_hide_using_css');
-  variable_del('exclude_node_title_themes_supporting_css');
-  foreach (_node_types_build()->names as $key => $val) {
-    variable_del('exclude_node_title_content_type_value_' . $key);
-    variable_del('exclude_node_title_content_type_modes_' . $key);
-  }
+function exclude_node_title_update_last_removed() {
+  return 7100;
 }
 
 /**
- * Implements hook_update_N().
+ * Migrate exclude_node_title variables to config.
  */
-function exclude_node_title_update_7100() {
-  $exclude_array = array(
-    'full' => 'full',
-  );
-  if (variable_get('exclude_node_title_remove_title', FALSE)) {
-    $exclude_array['teaser'] = 'teaser';
+function exclude_node_title_update_1000() {
+  $config = config('exclude_node_title.settings');
+  $config->set('exclude_node_title_search', update_variable_get('exclude_node_title_search', '0'));
+  $config->set('exclude_node_title_translation_sync', update_variable_get('exclude_node_title_translation_sync', TRUE));
+  $config->set('exclude_node_title_hide_using_css', update_variable_get('exclude_node_title_hide_using_css', '0'));
+  $config->set('exclude_node_title_themes_supporting_css', update_variable_get('exclude_node_title_themes_supporting_css', []));
+  $config->set('exclude_node_title_nid_list', update_variable_get('exclude_node_title_nid_list', []));
+
+  $exclude_node_title_content_type_value = [];
+  $exclude_node_title_content_type_modes = [];
+
+  foreach (node_type_get_names() as $node_type => $node_type_label) {
+    $exclude_node_title_content_type_value[$node_type] = update_variable_get('exclude_node_title_content_type_value_' . $node_type, []);
+    $exclude_node_title_content_type_modes[$node_type] = update_variable_get('exclude_node_title_content_type_modes_' . $node_type, []);
   }
-  foreach (_node_types_build()->names as $key => $val) {
-    switch (variable_get('exclude_node_title_content_type_value_' . $key)) {
-      case 'all':
-      case 'user':
-        variable_set('exclude_node_title_content_type_modes_' . $key, $exclude_array);
-    }
+
+  $config->set('exclude_node_title_content_type_value', $exclude_node_title_content_type_value);
+  $config->set('exclude_node_title_content_type_modes', $exclude_node_title_content_type_modes);
+
+  $config->save();
+
+  update_variable_del('exclude_node_title_search');
+  update_variable_del('exclude_node_title_translation_sync');
+  update_variable_del('exclude_node_title_hide_using_css');
+  update_variable_del('exclude_node_title_themes_supporting_css');
+  update_variable_del('exclude_node_title_nid_list');
+
+  foreach (node_type_get_names() as $node_type => $node_type_label) {
+    update_variable_del('exclude_node_title_content_type_value_' . $node_type);
+    update_variable_del('exclude_node_title_content_type_modes_' . $node_type);
   }
-  variable_del('exclude_node_title_remove_title');
 }
