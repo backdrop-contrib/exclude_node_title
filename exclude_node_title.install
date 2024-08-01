@@ -30,7 +30,7 @@ function exclude_node_title_install() {
     $exclude_node_title_content_type_value[$node_type] = 'none';
     $exclude_node_title_content_type_modes[$node_type] = $modes;
   }
-
+  $config = config('exclude_node_title.settings');
   $config->set('exclude_node_title_content_type_value', $exclude_node_title_content_type_value);
   $config->set('exclude_node_title_content_type_modes', $exclude_node_title_content_type_modes);
   $config->save();

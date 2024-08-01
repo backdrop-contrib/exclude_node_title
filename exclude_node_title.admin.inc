@@ -65,7 +65,7 @@ function exclude_node_title_admin_settings() {
       'user' => t('User defined nodes'),
     );
 
-    $form['exclude_node_title_content_type']['exclude_node_title_content_type_value.' . $node_type] = array(
+    $form['exclude_node_title_content_type']['exclude_node_title_content_type_value_' . $node_type] = array(
       '#type' => 'select',
       '#title' => $node_type_label,
       '#default_value' => $config->get('exclude_node_title_content_type_value.' . $node_type),
@@ -80,7 +80,7 @@ function exclude_node_title_admin_settings() {
     }
     $modes += array('nodeform' => t('Node form'));
 
-    switch ($form['exclude_node_title_content_type']['exclude_node_title_content_type_value.' . $node_type]['#default_value']) {
+    switch ($form['exclude_node_title_content_type']['exclude_node_title_content_type_value_' . $node_type]['#default_value']) {
       case 'all':
         $title = t('Exclude title from all nodes in the following view modes:');
         break;
@@ -93,7 +93,7 @@ function exclude_node_title_admin_settings() {
         $title = t('Exclude from:');
     }
 
-    $form['exclude_node_title_content_type']['exclude_node_title_content_type_modes.' . $node_type] = array(
+    $form['exclude_node_title_content_type']['exclude_node_title_content_type_modes_' . $node_type] = array(
       '#type' => 'checkboxes',
       '#title' => $title,
       '#default_value' => $config->get('exclude_node_title_content_type_modes.' . $node_type),
@@ -101,13 +101,32 @@ function exclude_node_title_admin_settings() {
       '#states' => array(
         // Hide the modes when the content type value is <none>.
         'invisible' => array(
-          'select[name="exclude_node_title_content_type_value.' . $node_type . '"]' => array('value' => 'none'),
+          'select[name="exclude_node_title_content_type_value_' . $node_type . '"]' => array('value' => 'none'),
         ),
       ),
     );
   }
 
+  $form['#submit'][] = 'exclude_node_title_submit_handler';
+
   backdrop_add_js(backdrop_get_path('module', 'exclude_node_title') . '/exclude_node_title.js');
 
   return system_settings_form($form);
+}
+
+function exclude_node_title_submit_handler($form, &$form_state) {
+  $config = config('exclude_node_title.settings');
+  $config->set('exclude_node_title_search', $form_state['values']['exclude_node_title_search']);
+  $config->set('exclude_node_title_translation_sync', $form_state['values']['exclude_node_title_translation_sync']);
+  $config->set('exclude_node_title_hide_using_css', $form_state['values']['exclude_node_title_hide_using_css']);
+  $config->set('exclude_node_title_themes_supporting_css', $form_state['values']['exclude_node_title_themes_supporting_css']);
+  $exclude_node_title_content_type_value = [];
+  $exclude_node_title_content_type_modes = [];
+  foreach (node_type_get_names() as $node_type => $node_type_label) {
+    $exclude_node_title_content_type_value[$node_type] = $form_state['values']['exclude_node_title_content_type_value_' . $node_type];
+    $exclude_node_title_content_type_modes[$node_type] = $form_state['values']['exclude_node_title_content_type_modes_' . $node_type];
+  }
+  $config->set('exclude_node_title_content_type_value', $exclude_node_title_content_type_value);
+  $config->set('exclude_node_title_content_type_modes', $exclude_node_title_content_type_modes);
+  $config->save();
 }

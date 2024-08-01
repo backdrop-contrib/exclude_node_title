@@ -116,7 +116,8 @@ function _exclude_node_title_preprocess(&$vars, $node, $view_mode) {
     }
     if ($view_mode == 'nodeform') {
       // Prevent access to the title field on nodeform view mode.
-      $vars['page']['content']['system_main']['title']['#access'] = FALSE;
+      // @TODO Fix "Cannot access offset of type string on string" error.
+      // $vars['page']['content']['system_main']['title']['#access'] = FALSE;
     }
   }
 }
@@ -219,7 +220,7 @@ function exclude_node_title_form_alter(&$form, &$form_state, $form_id) {
         '#type' => 'checkbox',
         '#title' => t('Exclude title from display'),
         '#required' => FALSE,
-        '#default_value' => (!empty($form['nid']['#value']) ? in_array($form['nid']['#value'], $config->get('exclude_node_title_nid_list')) : FALSE),
+        '#default_value' => (!empty($form['nid']['#value'] && !empty($config->get('exclude_node_title_nid_list'))) ? in_array($form['nid']['#value'], $config->get('exclude_node_title_nid_list')) : FALSE),
         '#weight' => $weight,
       );
       if (module_exists('translation') && $config->get('exclude_node_title_translation_sync') == TRUE && translation_supported_type($form['#node']->type) && !empty($form['nid']['#value'])) {
@@ -235,6 +236,7 @@ function exclude_node_title_form_alter(&$form, &$form_state, $form_id) {
       }
     }
   }
+
   return FALSE;
 }
 
@@ -243,7 +245,7 @@ function exclude_node_title_form_alter(&$form, &$form_state, $form_id) {
  */
 function exclude_node_title_set_flag($node, $value = 1) {
   $exclude_list = config_get('exclude_node_title.settings', 'exclude_node_title_nid_list');
-  $is_excluded = array_search($node->nid, $exclude_list);
+  $is_excluded = !empty($exclude_list) ? array_search($node->nid, $exclude_list) : FALSE;
   if ($value == 1 && $is_excluded === FALSE) {
     $exclude_list[] = $node->nid;
     config_set('exclude_node_title.settings', 'exclude_node_title_nid_list', $exclude_list);
@@ -321,9 +323,11 @@ function _exclude_node_title($param, $view_mode = 'full') {
           }
         }
       }
-      foreach ($nid_list as $item_nid) {
-        if (in_array($item_nid, $nid_exclude_list)) {
-          return !empty($exclude_settings[$node_info['node_type']]['modes'][$view_mode]);
+      if(!empty($nid_exclude_list)) {
+        foreach ($nid_list as $item_nid) {
+          if (in_array($item_nid, $nid_exclude_list)) {
+            return !empty($exclude_settings[$node_info['node_type']]['modes'][$view_mode]);
+          }
         }
       }
       return FALSE;
